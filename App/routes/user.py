@@ -4,7 +4,7 @@ from bson import ObjectId
 from fastapi import Depends, FastAPI, APIRouter, HTTPException, status, Path
 from fastapi.security import OAuth2PasswordRequestForm
 
-from App.schemas.users import UserRequest
+from App.schemas.users import UserRequest, User
 from App.utils.utils import hash_password
 from App.utils.auth import (
     get_current_user,
@@ -12,17 +12,33 @@ from App.utils.auth import (
     authenticate_user,
     user_dependency,
 )
-from App.database.database import users_collection
+from App.database.database import (
+    users_collection,
+    income_collection,
+    expense_collection,
+)
 from App.schemas.token import Token
 
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
-current = get_current_user
-
 
 @router.post("/login")
-def login():
-    pass
+async def login(
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+):
+    user = await authenticate_user(form_data.username, form_data.password)
+
+    token = create_access_token(
+        username=user["username"],
+        user_id=str(user["_id"]),
+        role=user.get("role", "basic"),
+        expires_delta=timedelta(minutes=20),
+    )
+
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+    }
 
 
 @router.post("/signup")
@@ -37,6 +53,7 @@ async def signup(userRequest: UserRequest):
         }
     )
 
+    
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -46,9 +63,16 @@ async def signup(userRequest: UserRequest):
     # Hashing the password
     userRequest.password = hash_password(userRequest.password)
 
-    new_user = userRequest.model_dump()
+    new_user = User(
+        userRequest.name,
+        userRequest.username,
+        userRequest.email,
+        userRequest.password,
+    )
 
-    await users_collection.insert_one(new_user)
+    print(new_user)
+
+    await users_collection.insert_one(new_user.model_dump())
 
     return {"message": "User created successfully"}
 
@@ -60,7 +84,27 @@ def logout():
 
 @router.get("/profile")
 async def profile(user: user_dependency):
-    return user
+    incomes = await income_collection.find({"owner_id": user["id"]}).to_list(length=100)
+    expenses = await expense_collection.find({"owner_id": user["id"]}).to_list(
+        length=100
+    )
+    totalIncome = 0
+    totalExpense = 0
+
+    for income in incomes:
+        # income["id"] = str(income.pop("_id"))
+        totalIncome += income["amount"]
+
+    for expense in expenses:
+        # income["id"] = str(income.pop("_id"))
+        totalExpense += expense["amount"]
+
+    return {
+        "message": "profile",
+        "user": user,
+        "Total income": totalIncome,
+        "Total expense": totalExpense,
+    }
 
 
 @router.put("/update")

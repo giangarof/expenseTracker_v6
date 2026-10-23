@@ -1,4 +1,22 @@
 from pydantic import BaseModel, Field
+from typing import Literal
+
+
+class User(BaseModel):
+    name: str
+    username: str
+    email: str
+    password: str
+    role: Literal["basic", "admin"] = "basic"
+
+    def __init__(self, name, username, email, password, role="basic"):
+        super().__init__(
+            name=name,
+            username=username,
+            email=email,
+            password=password,
+            role=role,
+        )
 
 
 class UserRequest(BaseModel):
