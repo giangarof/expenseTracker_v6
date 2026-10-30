@@ -22,7 +22,7 @@ from App.schemas.token import Token
 router = APIRouter(prefix="/api/auth", tags=["Auth"])
 
 
-@router.post("/login")
+@router.post("/login", status_code=status.HTTP_200_OK)
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ):
@@ -41,7 +41,7 @@ async def login(
     }
 
 
-@router.post("/signup")
+@router.post("/signup", status_code=status.HTTP_201_CREATED)
 async def signup(userRequest: UserRequest):
 
     existing_user = await users_collection.find_one(
@@ -53,7 +53,6 @@ async def signup(userRequest: UserRequest):
         }
     )
 
-    
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -69,9 +68,6 @@ async def signup(userRequest: UserRequest):
         userRequest.email,
         userRequest.password,
     )
-
-    print(new_user)
-
     await users_collection.insert_one(new_user.model_dump())
 
     return {"message": "User created successfully"}
@@ -82,32 +78,32 @@ def logout():
     pass
 
 
-@router.get("/profile")
+@router.get("/profile", status_code=status.HTTP_200_OK)
 async def profile(user: user_dependency):
-    incomes = await income_collection.find({"owner_id": user["id"]}).to_list(length=100)
-    expenses = await expense_collection.find({"owner_id": user["id"]}).to_list(
-        length=100
-    )
-    totalIncome = 0
-    totalExpense = 0
+    # incomes = await income_collection.find({"owner_id": user["id"]}).to_list(length=100)
+    # expenses = await expense_collection.find({"owner_id": user["id"]}).to_list(
+    #     length=100
+    # )
+    # totalIncome = 0
+    # totalExpense = 0
 
-    for income in incomes:
-        # income["id"] = str(income.pop("_id"))
-        totalIncome += income["amount"]
+    # for income in incomes:
+    #     # income["id"] = str(income.pop("_id"))
+    #     totalIncome += income["amount"]
 
-    for expense in expenses:
-        # income["id"] = str(income.pop("_id"))
-        totalExpense += expense["amount"]
+    # for expense in expenses:
+    #     # income["id"] = str(income.pop("_id"))
+    #     totalExpense += expense["amount"]
 
     return {
         "message": "profile",
         "user": user,
-        "Total income": totalIncome,
-        "Total expense": totalExpense,
+        # "Total income": totalIncome,
+        # "Total expense": totalExpense,
     }
 
 
-@router.put("/update")
+@router.put("/update", status_code=status.HTTP_200_OK)
 async def update(user: user_dependency, userRequest: UserRequest):
 
     userRequest.password = hash_password(userRequest.password)

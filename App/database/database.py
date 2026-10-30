@@ -20,6 +20,7 @@ db = client["expense_tracker"]
 users_collection = db["users"]
 income_collection = db["incomes"]
 expense_collection = db["expenses"]
+category_collection = db["category"]
 
 
 # Create unique indexes

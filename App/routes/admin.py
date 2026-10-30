@@ -7,7 +7,12 @@ from fastapi.security import OAuth2PasswordRequestForm
 from App.schemas.expense import ExpenseRequest
 from App.schemas.income import IncomeRequest
 from App.schemas.users import UserRequest, User
-from App.utils.utils import checkIfInt, checkIfNone, hash_password, checkIfAdmin
+from App.utils.utils import (
+    checkID,
+    hash_password,
+    checkIfAdmin,
+    checkIfExist,
+)
 from App.utils.auth import (
     get_current_user,
     create_access_token,
@@ -25,18 +30,18 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 # Incomes
-@router.get("/income/{id}")
+@router.get("/income/{id}", status_code=status.HTTP_200_OK)
 async def get_income_byID(user: user_dependency, id: str):
 
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Fetch and return
     income = await income_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(income)
+    checkIfExist(income, "Income ID does not exist...")
 
     # Replace ObjectID to plain string
     income["id"] = str(income.pop("_id"))
@@ -45,7 +50,7 @@ async def get_income_byID(user: user_dependency, id: str):
     return income
 
 
-@router.put("/income/{id}")
+@router.put("/income/{id}", status_code=status.HTTP_200_OK)
 async def update_income_byID(
     user: user_dependency, incomeRequest: IncomeRequest, id: str
 ):
@@ -54,11 +59,11 @@ async def update_income_byID(
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     income = await income_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(income)
+    checkIfExist(income, "Income ID does not exist")
 
     # Update if exist
     updateIncome = incomeRequest.model_dump()
@@ -71,17 +76,17 @@ async def update_income_byID(
     return {"message": "Income updated successfully"}
 
 
-@router.delete("/income/{id}")
+@router.delete("/income/{id}", status_code=status.HTTP_200_OK)
 async def delete_income_byID(user: user_dependency, id: str):
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     income = await income_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(income)
+    checkIfExist(income, "Income ID does not exist")
 
     # Delete if exist
     await income_collection.delete_one(
@@ -95,18 +100,18 @@ async def delete_income_byID(user: user_dependency, id: str):
 
 
 # Expenses
-@router.get("/expense/{id}")
+@router.get("/expense/{id}", status_code=status.HTTP_200_OK)
 async def get_expense_byID(user: user_dependency, id: str):
 
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Fetch and return
     expense = await expense_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(expense)
+    checkIfExist(expense, "Expense ID does not exist")
 
     # Replace ObjectID() with plain string
     expense["id"] = str(expense.pop("_id"))
@@ -115,7 +120,7 @@ async def get_expense_byID(user: user_dependency, id: str):
     return expense
 
 
-@router.put("/expense/{id}")
+@router.put("/expense/{id}", status_code=status.HTTP_200_OK)
 async def update_expense_byID(
     user: user_dependency, expenseRequest: ExpenseRequest, id: str
 ):
@@ -123,11 +128,11 @@ async def update_expense_byID(
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     expense = await expense_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(expense)
+    checkIfExist(expense, "Expense ID does not exist")
 
     # Update if exist
     updateExpense = expenseRequest.model_dump()
@@ -140,17 +145,17 @@ async def update_expense_byID(
     return {"message": "Expense updated successfully"}
 
 
-@router.delete("/expense/{id}")
+@router.delete("/expense/{id}", status_code=status.HTTP_200_OK)
 async def delete_expense_byID(user: user_dependency, id: str):
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     expense = await expense_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(expense)
+    checkIfExist(expense, "Expense ID does not exist")
 
     # Delete if exist
     await expense_collection.delete_one(
@@ -164,17 +169,17 @@ async def delete_expense_byID(user: user_dependency, id: str):
 
 
 # Users
-@router.get("/user/{id}")
+@router.get("/user/{id}", status_code=status.HTTP_200_OK)
 async def get_user_byID(user: user_dependency, id: str):
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Fetch and return
     users = await users_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(users)
+    checkIfExist(users, "User ID does not exist")
 
     # Replace ObjectID with plain str
     users["id"] = str(users.pop("_id"))
@@ -183,17 +188,17 @@ async def get_user_byID(user: user_dependency, id: str):
     return {"message": "User found", "user": users}
 
 
-@router.put("/user/{id}")
+@router.put("/user/{id}", status_code=status.HTTP_200_OK)
 async def update_user_byID(user: user_dependency, userRequest: UserRequest, id: str):
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     users = await users_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(users)
+    checkIfExist(users, "User ID does not exist")
 
     # Update if exist
     updateUser = userRequest.model_dump()
@@ -210,17 +215,17 @@ async def update_user_byID(user: user_dependency, userRequest: UserRequest, id: 
     return {"message": "Expense updated successfully"}
 
 
-@router.delete("/user/{id}")
+@router.delete("/user/{id}", status_code=status.HTTP_200_OK)
 async def delete_user_byID(user: user_dependency, id: str):
     # Check if the user is admin
     checkIfAdmin(user)
 
     # Check if id is provided
-    checkIfInt(id)
+    checkID(id)
 
     # Check if exist
     users = await users_collection.find_one({"_id": ObjectId(id)})
-    checkIfNone(users)
+    checkIfExist(users, "User ID does not exist")
 
     # Delete if exist
     await users_collection.delete_one(

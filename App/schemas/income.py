@@ -2,7 +2,6 @@ from pydantic import BaseModel
 
 
 class Income(BaseModel):
-    id: str
     name: str
     amount: float
     owner_id: str
@@ -16,6 +15,7 @@ class Income(BaseModel):
 class IncomeRequest(BaseModel):
     name: str
     amount: int
+    category_id: str | None = None
     model_config = {
         "json_schema_extra": {
             "example": {

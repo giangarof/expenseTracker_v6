@@ -2,6 +2,8 @@ from pydantic import BaseModel, Field
 from typing import Literal
 
 
+# Core model and fields admitted
+# In mongoDB, the id is generated when inserting the document as _id
 class User(BaseModel):
     name: str
     username: str
@@ -19,6 +21,7 @@ class User(BaseModel):
         )
 
 
+# Represents the User input
 class UserRequest(BaseModel):
     name: str = Field(min_length=2, max_length=25)
     username: str = Field(min_length=2, max_length=25)

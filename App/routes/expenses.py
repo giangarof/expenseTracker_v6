@@ -4,24 +4,21 @@ from bson import ObjectId
 from fastapi import Depends, FastAPI, APIRouter, HTTPException, status, Path
 from fastapi.security import OAuth2PasswordRequestForm
 
-from App.schemas.expense import ExpenseRequest
-from App.schemas.users import UserRequest
-from App.utils.utils import hash_password, checkIfExist
+from App.schemas.expense import Expense, ExpenseRequest
+from App.utils.utils import checkID, checkIfExist
 from App.utils.auth import (
     get_current_user,
     create_access_token,
     authenticate_user,
     user_dependency,
 )
-from App.database.database import expense_collection
+from App.database.database import expense_collection, category_collection
 from App.schemas.token import Token
 
 router = APIRouter(prefix="/api/expenses", tags=["Expenses"])
 
-current = get_current_user
 
-
-@router.get("/")
+@router.get("/", status_code=status.HTTP_200_OK)
 async def my_expenses(user: user_dependency):
 
     # Fetch all expenses
@@ -37,8 +34,11 @@ async def my_expenses(user: user_dependency):
     return {"message": "All your expenses", "data": expenses}
 
 
-@router.get("/{id}")
+@router.get("/{id}", status_code=status.HTTP_200_OK)
 async def get_one(user: user_dependency, id: str):
+
+    # Check ID format
+    checkID(id)
 
     # Fetch
     theExpense = await expense_collection.find_one(
@@ -46,7 +46,7 @@ async def get_one(user: user_dependency, id: str):
     )
 
     # Check if exist
-    checkIfExist(theExpense)
+    checkIfExist(theExpense, "Expense ID does not exist")
 
     # The id might look likt this: ObjectId("671234567890123456789012")
     # .pop() takes the ObjectId and convert it into: "671234567890123456789012"
@@ -56,48 +56,65 @@ async def get_one(user: user_dependency, id: str):
     return {"message": "Income", "data": theExpense}
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def add_expense(user: user_dependency, expenseRequest: ExpenseRequest):
 
-    # Convert the request into dictionary
-    expense = expenseRequest.model_dump()
-
     # Owner id field equals to the logged user
-    expense["owner_id"] = user["id"]
-
+    new_expense = Expense(expenseRequest.name, expenseRequest.amount, user["id"])
     # Await and insert into db
-    await expense_collection.insert_one(expense)
-
+    await expense_collection.insert_one(new_expense.model_dump())
     # Returns success
-    return {"message": "Income added successfully"}
+    return {"message": "Expense added successfully"}
 
 
-@router.put("/{id}")
+@router.put("/{id}", status_code=status.HTTP_200_OK)
 async def update_expense(
     user: user_dependency, expenseRequest: ExpenseRequest, id: str
 ):
+    # Check ID format
+    checkID(id)
 
     # Fetch it
     theExpense = await expense_collection.find_one(
         {"_id": ObjectId(id), "owner_id": user["id"]}
     )
-
     # Check if exist
-    checkIfExist(theExpense)
+    checkIfExist(theExpense, "Expense ID does not exist")
+
+    # Prepare format to update
+    updateExpense = expenseRequest.model_dump()
+
+    # IF category_id is not None -  Workflow
+    if expenseRequest.category_id is not None:
+        # Check category_id format
+        checkID(expenseRequest.category_id)
+
+        # if category_id exist
+        category = await category_collection.find_one(
+            {
+                "_id": ObjectId(expenseRequest.category_id),
+                "owner_id": user["id"],
+            }
+        )
+
+        # Check if category exist
+        checkIfExist(category, "Category does not exist")
 
     # Update if exist
-    updateExpense = expenseRequest.model_dump()
     await expense_collection.update_one(
         {"_id": ObjectId(id), "owner_id": user["id"]},
         {"$set": updateExpense},
     )
 
     # Returns message
-    return {"message": "Income updated successfully"}
+    return {"message": "Expense updated successfully"}
 
 
-@router.delete("/{id}")
-async def delete_income(user: user_dependency, id: str):
+@router.delete("/{id}", status_code=status.HTTP_200_OK)
+async def delete_expense(user: user_dependency, id: str):
+
+    # Check ID format
+    checkID(id)
 
     # Fetch it
     theExpense = await expense_collection.find_one(
@@ -105,7 +122,7 @@ async def delete_income(user: user_dependency, id: str):
     )
 
     # Check if exist
-    checkIfExist(theExpense)
+    checkIfExist(theExpense, "Expense ID does not exist")
 
     # Delete it
     await expense_collection.delete_one(

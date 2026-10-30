@@ -1,3 +1,4 @@
+from bson import ObjectId
 from fastapi import HTTPException, status
 
 from App.exports import bcrypt_context
@@ -19,13 +20,6 @@ def verify_password(password, hash_password):
     return verify
 
 
-def checkIfExist(data):
-    if data is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Income does not exist..."
-        )
-
-
 def checkIfAdmin(data):
     if data["role"] != "admin":
         raise HTTPException(
@@ -34,15 +28,12 @@ def checkIfAdmin(data):
         )
 
 
-def checkIfInt(data):
-    if not data:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="ID not provided..."
-        )
-
-
-def checkIfNone(data):
+def checkIfExist(data, msg):
     if data is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="ID does not exist..."
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{msg}")
+
+
+# Check whether ID is ObjectID
+def checkID(id):
+    if not ObjectId.is_valid(id):
+        raise HTTPException(status_code=400, detail="Invalid ID...")
