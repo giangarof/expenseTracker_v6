@@ -58,14 +58,12 @@ async def get_one(user: user_dependency, id: str):
 @router.post("/", status_code=status.HTTP_201_CREATED)
 async def add_income(user: user_dependency, incomeRequest: IncomeRequest):
 
-    # Convert the request into dictionary
-    income = incomeRequest.model_dump()
-
     # Owner id field equals to the logged user
-    income["owner_id"] = user["id"]
-
+    new_income = Income(
+        name=incomeRequest.name, amount=incomeRequest.amount, owner_id=user["id"]
+    )
     # Await and insert into db
-    await income_collection.insert_one(income)
+    await income_collection.insert_one(new_income.model_dump())
 
     # Returns success
     return {"message": "Income added successfully"}

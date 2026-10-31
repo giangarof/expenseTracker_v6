@@ -21,6 +21,7 @@ users_collection = db["users"]
 income_collection = db["incomes"]
 expense_collection = db["expenses"]
 category_collection = db["category"]
+budget_collection = db["budget"]
 
 
 # Create unique indexes

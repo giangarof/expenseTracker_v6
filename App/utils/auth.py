@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
+from bson import ObjectId
 from fastapi import Depends, HTTPException, status
 from App.exports import JWT_SECRET_KEY, algorithm, oauth2_bearer
 from App.utils.utils import verify_password
@@ -50,6 +51,16 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Check if user (still) exists
+        user = await users_collection.find_one({"_id": ObjectId(user_id)})
+
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User no longer exists",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 

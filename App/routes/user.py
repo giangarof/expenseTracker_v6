@@ -16,6 +16,7 @@ from App.database.database import (
     users_collection,
     income_collection,
     expense_collection,
+    category_collection,
 )
 from App.schemas.token import Token
 
@@ -63,10 +64,10 @@ async def signup(userRequest: UserRequest):
     userRequest.password = hash_password(userRequest.password)
 
     new_user = User(
-        userRequest.name,
-        userRequest.username,
-        userRequest.email,
-        userRequest.password,
+        name=userRequest.name,
+        username=userRequest.username,
+        email=userRequest.email,
+        password=userRequest.password,
     )
     await users_collection.insert_one(new_user.model_dump())
 
@@ -113,6 +114,25 @@ async def update(user: user_dependency, userRequest: UserRequest):
         {"_id": ObjectId(user["id"])}, {"$set": update_data}
     )
     return update_data
+
+
+@router.delete("/delete_account", status_code=status.HTTP_200_OK)
+async def delete_user(user: user_dependency):
+    user_id = user["id"]
+
+    # Delete user's incomes
+    await income_collection.delete_many({"owner_id": user_id})
+
+    # Delete user's expenses
+    await expense_collection.delete_many({"owner_id": user_id})
+
+    # Delete user's categories
+    await category_collection.delete_many({"owner_id": user_id})
+
+    # Delete user
+    await users_collection.delete_one({"_id": ObjectId(user_id)})
+
+    return {"message": "Account deleted successfully"}
 
 
 @router.post("/token", response_model=Token)

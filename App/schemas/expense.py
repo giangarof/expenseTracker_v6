@@ -1,15 +1,18 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from datetime import date, datetime, timezone
 
 
 class Expense(BaseModel):
     name: str
     amount: int
     category_id: str | None = None
+    date_added: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
     owner_id: str
 
     # This part is not necessary. Pydantic does create __init__ behind scenes
-    def __init__(self, name, amount, owner_id):
-        super().__init__(name=name, amount=amount, owner_id=owner_id)
+    # def __init__(self, name, amount, owner_id):
+    #     super().__init__(name=name, amount=amount, owner_id=owner_id)
 
 
 class ExpenseRequest(BaseModel):

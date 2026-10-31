@@ -60,7 +60,9 @@ async def get_one(user: user_dependency, id: str):
 async def add_expense(user: user_dependency, expenseRequest: ExpenseRequest):
 
     # Owner id field equals to the logged user
-    new_expense = Expense(expenseRequest.name, expenseRequest.amount, user["id"])
+    new_expense = Expense(
+        name=expenseRequest.name, amount=expenseRequest.amount, owner_id=user["id"]
+    )
     # Await and insert into db
     await expense_collection.insert_one(new_expense.model_dump())
     # Returns success

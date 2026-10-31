@@ -23,6 +23,7 @@ from App.database.database import (
     users_collection,
     income_collection,
     expense_collection,
+    category_collection,
 )
 from App.schemas.token import Token
 
@@ -30,6 +31,42 @@ router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
 
 # Incomes
+@router.get("/incomes/", status_code=status.HTTP_200_OK)
+async def get_incomes(user: user_dependency):
+
+    checkIfAdmin(user)
+
+    pipeline = [
+        {
+            "$lookup": {
+                "from": "users",
+                "let": {"owner": {"$toObjectId": "$owner_id"}},
+                "pipeline": [
+                    {"$match": {"$expr": {"$eq": ["$_id", "$$owner"]}}},
+                    {"$project": {"_id": 0, "name": 1}},
+                ],
+                "as": "user",
+            }
+        },
+        {"$unwind": "$user"},
+        {
+            "$project": {
+                "_id": 0,
+                "owner_id": {"$toString": "$_id"},
+                "name": 1,
+                "user_name": "$user.name",
+                "amount": 1,
+            },
+        },
+    ]
+
+    cursor = await income_collection.aggregate(pipeline)
+
+    result = await cursor.to_list(length=None)
+
+    return {"message": "total incomes", "data": result}
+
+
 @router.get("/income/{id}", status_code=status.HTTP_200_OK)
 async def get_income_byID(user: user_dependency, id: str):
 
@@ -100,6 +137,57 @@ async def delete_income_byID(user: user_dependency, id: str):
 
 
 # Expenses
+@router.get("/expenses/", status_code=status.HTTP_200_OK)
+async def get_expenses(user: user_dependency):
+
+    checkIfAdmin(user)
+
+    pipeline = [
+        # Look up users
+        {
+            "$lookup": {
+                "from": "users",
+                "let": {"owner": {"$toObjectId": "$owner_id"}},
+                "pipeline": [
+                    {"$match": {"$expr": {"$eq": ["$_id", "$$owner"]}}},
+                    {"$project": {"_id": 0, "name": 1}},
+                ],
+                "as": "user",
+            }
+        },
+        # look up category
+        {
+            "$lookup": {
+                "from": "category",
+                "let": {"cat_id": "$category_id"},
+                "pipeline": [
+                    {"$match": {"$expr": {"$eq": [{"$toString": "$_id"}, "$$cat_id"]}}},
+                    {"$project": {"_id": 0, "name": 1}},
+                ],
+                "as": "category",
+            }
+        },
+        {"$unwind": "$user"},
+        {"$unwind": {"path": "$category", "preserveNullAndEmptyArrays": True}},
+        {
+            "$project": {
+                "_id": 0,
+                "owner_id": {"$toString": "$_id"},
+                "name": 1,
+                "user_name": "$user.name",
+                "amount": 1,
+                "category_name": {"$ifNull": ["$category.name", None]},
+            },
+        },
+    ]
+
+    cursor = await expense_collection.aggregate(pipeline)
+
+    result = await cursor.to_list(length=None)
+
+    return {"message": "total expensess", "data": result}
+
+
 @router.get("/expense/{id}", status_code=status.HTTP_200_OK)
 async def get_expense_byID(user: user_dependency, id: str):
 
@@ -169,6 +257,30 @@ async def delete_expense_byID(user: user_dependency, id: str):
 
 
 # Users
+@router.get("/users/", status_code=status.HTTP_200_OK)
+async def get_users(user: user_dependency):
+
+    checkIfAdmin(user)
+
+    pipeline = [
+        {
+            "$project": {
+                "_id": 0,
+                "user_id": {"$toString": "$_id"},
+                "name": 1,
+                "role": 1,
+                "created_at": 1,
+            }
+        }
+    ]
+
+    cursor = await users_collection.aggregate(pipeline)
+
+    result = await cursor.to_list(length=None)
+
+    return {"message": "Total users", "data": result}
+
+
 @router.get("/user/{id}", status_code=status.HTTP_200_OK)
 async def get_user_byID(user: user_dependency, id: str):
     # Check if the user is admin
@@ -236,3 +348,38 @@ async def delete_user_byID(user: user_dependency, id: str):
 
     # Returns message
     return {"message": "deleted successfully"}
+
+
+# Category
+@router.get("/categories", status_code=status.HTTP_200_OK)
+async def get_categories(user: user_dependency):
+    checkIfAdmin(user)
+
+    pipeline = [
+        # Look up users
+        {
+            "$lookup": {
+                "from": "users",
+                "let": {"owner": {"$toObjectId": "$owner_id"}},
+                "pipeline": [
+                    {"$match": {"$expr": {"$eq": ["$_id", "$$owner"]}}},
+                    {"$project": {"_id": 0, "name": 1}},
+                ],
+                "as": "user",
+            }
+        },
+        {"$unwind": "$user"},
+        {
+            "$project": {
+                "_id": 0,
+                "name": 1,
+                "owner_id": {"$toString": "$_id"},
+                "user_name": "$user.name",
+            },
+        },
+    ]
+
+    cursor = await category_collection.aggregate(pipeline)
+
+    result = await cursor.to_list(length=None)
+    return {"message": "All categories and owners", "data": result}

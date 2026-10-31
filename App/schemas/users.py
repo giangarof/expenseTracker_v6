@@ -1,3 +1,5 @@
+from datetime import datetime, timezone
+
 from pydantic import BaseModel, Field
 from typing import Literal
 
@@ -9,16 +11,18 @@ class User(BaseModel):
     username: str
     email: str
     password: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     role: Literal["basic", "admin"] = "basic"
 
-    def __init__(self, name, username, email, password, role="basic"):
-        super().__init__(
-            name=name,
-            username=username,
-            email=email,
-            password=password,
-            role=role,
-        )
+    # Not necessary, Pydantic does handle it
+    # def __init__(self, name, username, email, password, role="basic"):
+    #     super().__init__(
+    #         name=name,
+    #         username=username,
+    #         email=email,
+    #         password=password,
+    #         role=role,
+    #     )
 
 
 # Represents the User input
