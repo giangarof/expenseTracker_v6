@@ -15,6 +15,7 @@ class BudgetRequest(BaseModel):
     limit: float = Field(gt=0)
     month: int = Field(ge=1, le=12)
     year: int
+    category_id: str | None = None
     model_config = {
         "json_schema_extra": {
             "example": {
